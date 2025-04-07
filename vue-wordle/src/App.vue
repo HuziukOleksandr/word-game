@@ -1,26 +1,65 @@
 <template>
   <div class="wrapper">
     <div class="header">
-      <div class="letter" v-for="letter in complexity">{{ letter }}</div>
+      <div class="letter" v-for="letter in WORD">{{ letter }}</div>
     </div>
     <div class="content">
-      <DisplayInput :word="WORD" :complexity="complexity" />
-      <
+      <DisplayInput
+        v-for="(elem, index) in 5"
+        :key="index"
+        :complexity="complexity"
+        :match="match[index]"
+        :ref="setInputRef"
+        @input="(value) => getLetter(index, value)"
+      />
     </div>
 
     <div class="footer">
-      <button class="button" :style="{ width: buttonWidth }">Reset</button>
-      <button class="button" :style="{ width: buttonWidth }">Next</button>
+      <button class="button" :style="{ width: buttonWidth }" @click="Reset">Reset</button>
+      <button class="button" :style="{ width: buttonWidth }" @click="">Next</button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted, nextTick, reactive } from 'vue'
 import DisplayInput from './components/DisplayInput.vue'
 
 const WORD = 'Hous'
-const complexity = ref<number>(8)
+const complexity = ref<number>(4),
+  shot = ref<number>(0),
+  inputRefs = reactive<any[]>([])
+const match = ref<(number[] | null)[]>(Array(5).fill(null))
+
+onMounted(() => {
+  nextTick(() => {
+    if (inputRefs.length > 0) {
+      inputRefs[shot.value]?.$el?.querySelector('input')?.focus()
+    }
+  })
+})
+
+const Matched = (oldArray: string[], newArray: string[]) => {
+  const matchedIndex = oldArray
+    .map((item, index) => (item.toUpperCase() === newArray[index].toUpperCase() ? index : -1))
+    .filter((index, item) => index !== -1)
+  return matchedIndex
+}
+
+const getLetter = (index: number, value: string[]) => {
+  match.value[index] = Matched(WORD.split(''), value)
+  if (true) {
+    setTimeout(() => {
+      inputRefs[++shot.value]?.$el?.querySelector('input')?.focus()
+    }, 1000)
+  }
+}
+
+const Reset = () => {}
+
+const setInputRef = (el: any) => {
+  if (el) inputRefs.push(el)
+}
 
 const chooseLevel = (value: string) => {
   switch (value) {
@@ -35,6 +74,7 @@ const chooseLevel = (value: string) => {
       break
   }
 }
+
 const buttonWidth = computed(() => {
   const width = (complexity.value / 2) * 50 + 10 * (complexity.value / 2 - 1) + 'px'
   return width
@@ -45,13 +85,13 @@ const buttonWidth = computed(() => {
 @mixin font_ {
   font-family: Verdana, Geneva, Tahoma, sans-serif;
   font-weight: 400;
-  line-height: 50px;
+  line-height: 46px;
   font-size: 28px;
 }
 
 @mixin color_ {
   background-color: black;
-  color: rgb(230, 227, 224);
+  color: WHITE;
   border: solid gray 2px;
 }
 
@@ -68,7 +108,7 @@ const buttonWidth = computed(() => {
   justify-content: center;
   gap: 20px;
   padding: 100px 0;
-  background-color: rgb(2, 2, 2);
+  background-color: black;
 }
 
 .header,
