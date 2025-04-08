@@ -1,7 +1,14 @@
 <template>
   <div class="wrapper">
+    <div class="wrapper--button">
+      <button class="button" @click="ChooseComplexity('easy')" :style="{ width: buttonWidth }">4</button>
+      <button class="button" @click="ChooseComplexity('medium')" :style="{ width: buttonWidth }">6</button>
+      <button class="button" @click="ChooseComplexity('hard')" :style="{ width: buttonWidth }">8</button>
+    </div>
     <div class="header">
-      <div class="letter" v-for="letter in WORD">{{ letter }}</div>
+      <transition-group name="letter" >
+        <div class="letter" v-for="letter in WORD">{{ letter }}</div>
+      </transition-group>
     </div>
     <div class="content">
       <DisplayInput
@@ -23,9 +30,12 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted, nextTick, reactive } from 'vue'
+import { generate } from 'random-words'
 import DisplayInput from './components/DisplayInput.vue'
 
-const WORD = 'Hous'
+const WORD = computed(() => {
+  return generate({ minLength: complexity.value, maxLength: complexity.value }) as string
+})
 const complexity = ref<number>(4),
   shot = ref<number>(0),
   inputRefs = reactive<any[]>([])
@@ -47,7 +57,9 @@ const Matched = (oldArray: string[], newArray: string[]) => {
 }
 
 const getLetter = (index: number, value: string[]) => {
-  match.value[index] = Matched(WORD.split(''), value)
+  console.log(WORD.value)
+
+  match.value[index] = Matched(WORD.value.split(''), value)
   if (true) {
     setTimeout(() => {
       inputRefs[++shot.value]?.$el?.querySelector('input')?.focus()
@@ -61,7 +73,7 @@ const setInputRef = (el: any) => {
   if (el) inputRefs.push(el)
 }
 
-const chooseLevel = (value: string) => {
+const ChooseComplexity = (value: string) => {
   switch (value) {
     case 'easy':
       complexity.value = 4
@@ -69,7 +81,7 @@ const chooseLevel = (value: string) => {
     case 'medium':
       complexity.value = 6
       break
-    case 'medium':
+    case 'hard':
       complexity.value = 8
       break
   }
@@ -112,12 +124,16 @@ const buttonWidth = computed(() => {
 }
 
 .header,
-.footer {
+.footer,
+.wrapper--button {
   display: flex;
   gap: 10px;
   padding: 10px;
   border: solid gray 2px;
   @include size_();
+}
+.header {
+  transition: all 0.4s;
 }
 
 .letter {
@@ -141,5 +157,29 @@ const buttonWidth = computed(() => {
 .button {
   @include font_();
   @include color_();
+  transition: all 0.4s;
+}
+
+.button:hover,
+.letter:hover {
+  cursor: pointer;
+  scale: 1.05;
+}
+
+.letter-group {
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+  border: solid gray 2px;
+}
+
+.letter-enter-active,
+.letter-leave-active {
+  transition: transform 0.4s ease, opacity 0.4s ease;
+}
+.letter-enter-from,
+.letter-leave-to {
+  transform: scale(0.8);
+  opacity: 0;
 }
 </style>

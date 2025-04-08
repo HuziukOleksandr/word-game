@@ -3,12 +3,12 @@
     <input
       v-for="(letter, index) in values"
       class="input"
-      
       :key="index"
       v-model="values[index]"
       ref="inputs"
       type="text"
-      maxlength="1":class="{ matched: match?.includes(index) }"
+      maxlength="1"
+      :class="handleClass(index)"
       @input="handleInput(index)"
       @keydown="handleKeyDown($event, index)"
     />
@@ -22,14 +22,20 @@ const { complexity, match } = defineProps<{
   complexity: number;
   match?: number[] | null
 }>()
- console.log(match);
- 
 const emit = defineEmits<{
   input: [value: string[]]
 }>()
 
 const inputs = ref<(HTMLInputElement | null)[]>([])
 const values = reactive<string[]>(Array(complexity).fill(''))
+
+const handleClass = (index: number) => {
+  if (match?.includes(index)) {
+    return "matched"
+  } else {
+    return "nonMatched"
+  }
+}
 
 const handleInput = (index: number) => {
   if (index >= complexity - 1) {
@@ -88,6 +94,42 @@ onMounted(() => {
 }
 
 .matched {
-  background-color: green;
+  animation: fillGreen 1.6s forwards;
+}
+
+.nonMatched {
+  .matched {
+  animation: changeScale 1.6s forwards;
+}
+
+}
+
+
+@keyframes fillGreen {
+  0% {
+    background-color: rgb(0, 0, 0);
+    scale: 0.9;
+  }
+  50% {
+      scale: 1.2;
+  }
+  100% {
+    background-color: rgb(8, 129, 8);
+    scale: 1;
+  }
+}
+
+@keyframes changeScale {
+  0% {
+    background-color: rgb(12, 12, 12);
+    scale: 0.9;
+  }
+  50% {
+      scale: 1.2;
+  }
+  100% {
+    background-color: black;
+    scale: 1;
+  }
 }
 </style>
