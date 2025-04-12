@@ -1,96 +1,210 @@
 <template>
   <div class="wrapper">
     <div class="wrapper--button">
-      <button class="button" @click="ChooseComplexity('easy')" :style="{ width: buttonWidth }">4</button>
-      <button class="button" @click="ChooseComplexity('medium')" :style="{ width: buttonWidth }">6</button>
-      <button class="button" @click="ChooseComplexity('hard')" :style="{ width: buttonWidth }">8</button>
+      <button class="button" @click="SelectComlexity('easy')">Easy</button>
+      <button class="button" @click="SelectComlexity('medium')">Medium</button>
+      <button class="button" @click="SelectComlexity('hard')">Hard</button>
     </div>
-    <div class="header">
-      <transition-group name="letter" >
-        <div class="letter" v-for="letter in WORD">{{ letter }}</div>
-      </transition-group>
+    <!-- забрати  -->
+    <div class="header" v-if="WinGame === true || LoseGame === true">
+      <div class="letter" v-for="letter in WORD">{{ letter }}</div>
     </div>
     <div class="content">
-      <DisplayInput
-        v-for="(elem, index) in 5"
-        :key="index"
-        :complexity="complexity"
-        :match="match[index]"
-        :ref="setInputRef"
-        @input="(value) => getLetter(index, value)"
-      />
+      <div
+        class="attemp"
+        v-for="(element, indexY) in Attempt"
+        :key="'row-' + indexY + '-' + Complexity"
+      >
+        <input
+          class="input"
+          v-for="(element, indexX) in Complexity"
+          :key="'input-' + indexY + '-' + indexX + '-' + Complexity"
+          :ref="(el) => setInputRef(el, indexY, indexX)"
+          @input="Change($event, indexY, indexX)"
+          @keydown="handleKeyDown($event, indexY, indexX)"
+        />
+      </div>
     </div>
-
     <div class="footer">
-      <button class="button" :style="{ width: buttonWidth }" @click="Reset">Reset</button>
-      <button class="button" :style="{ width: buttonWidth }" @click="">Next</button>
+      <button class="button" @click="Reset()">Reset</button>
+      <button class="button" @click="">Next</button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, nextTick, reactive } from 'vue'
-import { generate } from 'random-words'
-import DisplayInput from './components/DisplayInput.vue'
+import { ref, onMounted, nextTick } from 'vue'
+import { generateWord } from './services/generateWord.ts'
+import { vFocus } from './services/vFocus.ts'
 
-const WORD = computed(() => {
-  return generate({ minLength: complexity.value, maxLength: complexity.value }) as string
-})
-const complexity = ref<number>(4),
-  shot = ref<number>(0),
-  inputRefs = reactive<any[]>([])
-const match = ref<(number[] | null)[]>(Array(5).fill(null))
+
+const Complexity = ref<number>(4),
+  Attempt = ref<number>(10),
+  WinGame = ref<boolean>(false),
+  LoseGame = ref<boolean>(false)
 
 onMounted(() => {
+  inputsRef.value = resetGrid()
+  letters.value = resetGrid()
+  matched.value = resetGrid()
   nextTick(() => {
-    if (inputRefs.length > 0) {
-      inputRefs[shot.value]?.$el?.querySelector('input')?.focus()
-    }
+    vFocus(inputsRef.value)
   })
 })
 
-const Matched = (oldArray: string[], newArray: string[]) => {
-  const matchedIndex = oldArray
-    .map((item, index) => (item.toUpperCase() === newArray[index].toUpperCase() ? index : -1))
-    .filter((index, item) => index !== -1)
-  return matchedIndex
+const resetGrid = () => {
+  const array = []
+  for (let y = 0; y < Attempt.value; y++) {
+    const row: any[] = []
+    for (let x = 0; x < Complexity.value; x++) {
+      row.push(null)
+    }
+    array.push(row)
+  }
+  return array
 }
+const inputsRef = ref(resetGrid())
+const letters = ref(resetGrid())
+const matched = ref(resetGrid())
+const WORD = ref(generateWord(Complexity.value))
 
-const getLetter = (index: number, value: string[]) => {
-  console.log(WORD.value)
 
-  match.value[index] = Matched(WORD.value.split(''), value)
-  if (true) {
-    setTimeout(() => {
-      inputRefs[++shot.value]?.$el?.querySelector('input')?.focus()
-    }, 1000)
+const handleKeyDown = (event: KeyboardEvent, y: number, x: number) => {
+  if (event.key === 'Backspace') {
+    const currentValue = letters.value[y][x]
+    if (currentValue) {
+      letters.value[y][x] = null
+    } else {
+      MoveFocusBack(y, x)
+    }
   }
 }
 
-const Reset = () => {}
-
-const setInputRef = (el: any) => {
-  if (el) inputRefs.push(el)
+const handleClass = (y: number, x: number) => {
+  const input = inputsRef.value[y][x]
+  if (matched.value[y][x] == true) {
+    input.classList.add('matched')
+  }
 }
 
-const ChooseComplexity = (value: string) => {
+const Change = (event: Event, y: number, x: number) => {
+  const inputElement = event.target as HTMLInputElement
+  let value = inputElement.value
+
+  if (!/^[a-zA-Zа-яА-ЯїЇіІєЄґҐёЁ]$/.test(value.charAt(0))) {
+    value = ''
+  } else {
+    value = value.charAt(0).toUpperCase()
+  }
+  inputElement.value = value
+  letters.value[y][x] = value
+  if (value) {
+    MoveFocusForward(y, x)
+  }
+}
+
+function MoveFocusForward(y: number, x: number) {
+  if (x < Complexity.value - 1) {
+    inputsRef.value[y][x + 1].focus()
+  } else {
+    isMatched(y)
+    for (let i = 0; i < Complexity.value; i++) {
+      handleClass(y, i)
+    }
+    if (WinGame.value === false) {
+      setTimeout(() => {
+        if (y < Attempt.value - 1) {
+          inputsRef.value[y + 1][0].focus()
+        }
+      }, 1000)
+    }
+  }
+}
+
+function MoveFocusBack(y: number, x: number) {
+  if (x > 0) {
+    letters.value[y][x - 1] = null
+    inputsRef.value[y][x - 1].focus()
+  } else if (y > 0) {
+    letters.value[y - 1][Complexity.value - 1] = null
+    inputsRef.value[y - 1][Complexity.value - 1].focus()
+  }
+}
+
+function isMatched(y: number) {
+  let count = 0
+  for (let i = 0; i < Complexity.value; i++) {
+    if (letters.value[y][i] == WORD.value[i].toUpperCase()) {
+      count += 1
+      matched.value[y][i] = true
+    }
+  }
+  if (count === Complexity.value) {
+    Win()
+    console.log(WinGame.value)
+  }
+  count = 0
+}
+
+const setInputRef = (el: any, y: number, x: number) => {
+  if (!inputsRef.value[y]) {
+    inputsRef.value[y] = []
+  }
+  inputsRef.value[y][x] = el
+}
+
+const SelectComlexity = async (value: string) => {
   switch (value) {
-    case 'easy':
-      complexity.value = 4
+    case 'easy': {
+      Complexity.value = 4
+      Attempt.value = 10
       break
-    case 'medium':
-      complexity.value = 6
+    }
+    case 'medium': {
+      Complexity.value = 6
+      Attempt.value = 8
       break
-    case 'hard':
-      complexity.value = 8
+    }
+    case 'hard': {
+      Complexity.value = 8
+      Attempt.value = 6
       break
+    }
   }
+
+  await nextTick()
+  inputsRef.value = resetGrid()
+  letters.value = resetGrid()
+  matched.value = resetGrid()
+
+  await nextTick()
+  vFocus(inputsRef.value)
 }
 
-const buttonWidth = computed(() => {
-  const width = (complexity.value / 2) * 50 + 10 * (complexity.value / 2 - 1) + 'px'
-  return width
-})
+const Reset = async () => {
+  WinGame.value = false
+  LoseGame.value = false
+  for(let y=0; y < Attempt.value; y++){
+    for(let x=0; x < Complexity.value; x++){
+      inputsRef.value[y][x].classList.remove("matched")
+      inputsRef.value[y][x].value = null
+    }
+  }
+  inputsRef.value = resetGrid()
+  letters.value = resetGrid()
+  matched.value = resetGrid()
+  WORD.value = generateWord(Complexity.value)
+  await nextTick()
+  vFocus(inputsRef.value)
+}
+
+const Win = () => {
+  WinGame.value = true
+}
+
+const Over = () => {
+  LoseGame.value = true
+}
 </script>
 
 <style scoped lang="scss">
@@ -132,6 +246,12 @@ const buttonWidth = computed(() => {
   border: solid gray 2px;
   @include size_();
 }
+
+.attemp {
+  display: flex;
+  gap: 10px;
+  transition: all 0.4s;
+}
 .header {
   transition: all 0.4s;
 }
@@ -157,6 +277,7 @@ const buttonWidth = computed(() => {
 .button {
   @include font_();
   @include color_();
+  padding: 0 10px;
   transition: all 0.4s;
 }
 
@@ -173,13 +294,42 @@ const buttonWidth = computed(() => {
   border: solid gray 2px;
 }
 
-.letter-enter-active,
-.letter-leave-active {
-  transition: transform 0.4s ease, opacity 0.4s ease;
+.input {
+  width: 50px;
+  height: 50px;
+  text-align: center;
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
+  font-weight: 400;
+  line-height: 32px;
+  font-size: 28px;
+  text-transform: uppercase;
+  background-color: black;
+  color: rgb(230, 227, 224);
+  border: solid gray 2px;
+  caret-color: transparent;
 }
-.letter-enter-from,
-.letter-leave-to {
-  transform: scale(0.8);
-  opacity: 0;
+
+.input:focus {
+  outline: none;
+  border-color: #ffcc00;
+  box-shadow: 0 0 8px rgba(255, 204, 0, 0.8);
+}
+
+.matched {
+  animation: fillGreen 1.6s forwards;
+}
+
+@keyframes fillGreen {
+  0% {
+    background-color: rgb(0, 0, 0);
+    scale: 0.9;
+  }
+  50% {
+    scale: 1.2;
+  }
+  100% {
+    background-color: rgb(8, 129, 8);
+    scale: 1;
+  }
 }
 </style>

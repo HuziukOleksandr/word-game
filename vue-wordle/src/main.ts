@@ -1,5 +1,9 @@
 import { createApp } from 'vue';
 import App from './App.vue';
+import { vFocus } from './directives/v-focus';
 import "./assets/style.css"
+const app = createApp(App);
 
-createApp(App).mount('#app')
+app.directive("focus", vFocus)
+
+app.mount('#app')

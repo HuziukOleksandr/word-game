@@ -1,7 +1,7 @@
 <template>
   <div class="input-wrapper">
     <input
-      v-for="(letter, index) in values"
+      v-for="(letter, index) in complexity"
       class="input"
       :key="index"
       v-model="values[index]"
@@ -16,18 +16,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, reactive } from 'vue'
+import { ref, onMounted, reactive, watch } from 'vue'
 
 const { complexity, match } = defineProps<{
   complexity: number;
-  match?: number[] | null
+  match?: number[] | null;
 }>()
 const emit = defineEmits<{
   input: [value: string[]]
 }>()
 
 const inputs = ref<(HTMLInputElement | null)[]>([])
-const values = reactive<string[]>(Array(complexity).fill(''))
+const values = reactive<string[]>([])
 
 const handleClass = (index: number) => {
   if (match?.includes(index)) {
@@ -36,9 +36,10 @@ const handleClass = (index: number) => {
     return "nonMatched"
   }
 }
-
 const handleInput = (index: number) => {
+
   if (index >= complexity - 1) {
+    console.log(values);
     emit('input', [...values])
   }
   if (values[index].length > 1) {
@@ -98,11 +99,10 @@ onMounted(() => {
 }
 
 .nonMatched {
-  .matched {
   animation: changeScale 1.6s forwards;
 }
 
-}
+
 
 
 @keyframes fillGreen {
