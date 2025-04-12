@@ -146,8 +146,8 @@ const setInputRef = (el: any, y: number, x: number) => {
 }
 
 const restart = async () => {
-  WinGame.value = false
-  LoseGame.value = false
+ winGame .value = false
+  loseGame.value = false
   for (let y = 0; y < attempt.value; y++) {
     for (let x = 0; x < complexity.value; x++) {
       inputsRef.value[y][x].classList.remove('matched')
@@ -160,6 +160,10 @@ const restart = async () => {
   word.value = generateWord(complexity.value)
   await nextTick()
   vFocus(inputsRef.value)
+}
+
+const next = () => {
+
 }
 
 const plus = async () => {
@@ -182,7 +186,7 @@ const minus = async () => {
     inputsRef.value = resetGrid(complexity.value, attempt.value)
     letters.value = resetGrid(complexity.value, attempt.value)
     matched.value = resetGrid(complexity.value, attempt.value)
-    WORD.value = generateWord(complexity.value)
+    word.value = generateWord(complexity.value)
     await nextTick()
     vFocus(inputsRef.value)
   }
