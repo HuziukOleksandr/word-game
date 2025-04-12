@@ -1,33 +1,37 @@
 <template>
   <div class="wrapper">
-    <div class="wrapper--button">
-      <button class="button" @click="SelectComlexity('easy')">Easy</button>
-      <button class="button" @click="SelectComlexity('medium')">Medium</button>
-      <button class="button" @click="SelectComlexity('hard')">Hard</button>
-    </div>
-    <!-- забрати  -->
-    <div class="header" v-if="WinGame === true || LoseGame === true">
-      <div class="letter matched" v-for="letter in WORD">{{ letter }}</div>
-    </div>
+    <header class="header">
+      <p class="logo">Words</p>
+    </header>
     <div class="content">
       <div
         class="attemp"
-        v-for="(element, indexY) in Attempt"
-        :key="'row-' + indexY + '-' + Complexity"
+        v-for="(element, indexY) in attempt"
+        :key="'row-' + indexY + '-' + complexity"
       >
         <input
           class="input"
-          v-for="(element, indexX) in Complexity"
-          :key="'input-' + indexY + '-' + indexX + '-' + Complexity"
+          v-for="(element, indexX) in complexity"
+          :key="'input-' + indexY + '-' + indexX + '-' + complexity"
           :ref="(el) => setInputRef(el, indexY, indexX)"
-          @input="Change($event, indexY, indexX)"
+          @input="change($event, indexY, indexX)"
           @keydown="handleKeyDown($event, indexY, indexX)"
         />
       </div>
     </div>
     <div class="footer">
-      <button class="button" @click="Reset()">Reset</button>
-      <button class="button" @click="">Next</button>
+      <button class="button" @click="restart()">
+        <img src="./assets/images/restart.svg" alt="restart" class="image" />
+      </button>
+      <button class="button" @click="minus()">
+        <img src="./assets/images/minus.svg" alt="minus" class="image" />
+      </button>
+      <button class="button" @click="plus()">
+        <img src="./assets/images/plus.svg" alt="plus" class="image" />
+      </button>
+      <button class="button" @click="next()">
+        <img src="./assets/images/next.svg" alt="restart" class="image" />
+      </button>
     </div>
   </div>
 </template>
@@ -36,46 +40,47 @@
 import { ref, onMounted, nextTick } from 'vue'
 import { generateWord } from './services/generateWord.ts'
 import { vFocus } from './services/vFocus.ts'
+import { resetGrid } from './services/resetGrid.ts'
 
-
-const Complexity = ref<number>(4),
-  Attempt = ref<number>(10),
-  WinGame = ref<boolean>(false),
-  LoseGame = ref<boolean>(false)
+const complexity = ref<number>(4),
+  attempt = ref<number>(10),
+  winGame = ref<boolean>(false),
+  loseGame = ref<boolean>(false),
+  inputsRef = ref(resetGrid(complexity.value, attempt.value)),
+  letters = ref(resetGrid(complexity.value, attempt.value)),
+  matched = ref(resetGrid(complexity.value, attempt.value)),
+  word = ref(generateWord(complexity.value))
 
 onMounted(() => {
-  inputsRef.value = resetGrid()
-  letters.value = resetGrid()
-  matched.value = resetGrid()
+  word.value = generateWord(complexity.value)
   nextTick(() => {
     vFocus(inputsRef.value)
   })
 })
 
-const resetGrid = () => {
-  const array = []
-  for (let y = 0; y < Attempt.value; y++) {
-    const row: any[] = []
-    for (let x = 0; x < Complexity.value; x++) {
-      row.push(null)
-    }
-    array.push(row)
-  }
-  return array
-}
-const inputsRef = ref(resetGrid())
-const letters = ref(resetGrid())
-const matched = ref(resetGrid())
-const WORD = ref(generateWord(Complexity.value))
-
-
 const handleKeyDown = (event: KeyboardEvent, y: number, x: number) => {
-  if (event.key === 'Backspace') {
-    const currentValue = letters.value[y][x]
-    if (currentValue) {
-      letters.value[y][x] = null
-    } else {
-      MoveFocusBack(y, x)
+  const key = event.key
+  const currentValue = letters.value[y][x]
+  switch (key) {
+    case 'Backspase': {
+      if (currentValue) {
+        letters.value[y][x] = null
+      } else {
+        moveFocusBack(y, x)
+      }
+      break
+    }
+    case 'Enter': {
+      if (x == complexity.value - 1 && y < attempt.value && currentValue) {
+        isMatched(y)
+        for (let i = 0; i < complexity.value; i++) {
+            handleClass(y, i)
+          }
+        if (y != attempt.value - 1 && winGame.value != true  ) {
+          inputsRef.value[y + 1][0].focus()
+        }
+        break
+      }
     }
   }
 }
@@ -87,7 +92,7 @@ const handleClass = (y: number, x: number) => {
   }
 }
 
-const Change = (event: Event, y: number, x: number) => {
+const change = (event: Event, y: number, x: number) => {
   const inputElement = event.target as HTMLInputElement
   let value = inputElement.value
 
@@ -99,49 +104,36 @@ const Change = (event: Event, y: number, x: number) => {
   inputElement.value = value
   letters.value[y][x] = value
   if (value) {
-    MoveFocusForward(y, x)
+    moveFocusForward(y, x)
   }
 }
 
-function MoveFocusForward(y: number, x: number) {
-  if (x < Complexity.value - 1) {
+function moveFocusForward(y: number, x: number) {
+  if (x < complexity.value - 1) {
     inputsRef.value[y][x + 1].focus()
-  } else {
-    isMatched(y)
-    for (let i = 0; i < Complexity.value; i++) {
-      handleClass(y, i)
-    }
-    if (WinGame.value === false) {
-      setTimeout(() => {
-        if (y < Attempt.value - 1) {
-          inputsRef.value[y + 1][0].focus()
-        }
-      }, 1000)
-    }
   }
 }
 
-function MoveFocusBack(y: number, x: number) {
+function moveFocusBack(y: number, x: number) {
   if (x > 0) {
     letters.value[y][x - 1] = null
     inputsRef.value[y][x - 1].focus()
   } else if (y > 0) {
-    letters.value[y - 1][Complexity.value - 1] = null
-    inputsRef.value[y - 1][Complexity.value - 1].focus()
+    letters.value[y - 1][complexity.value - 1] = null
+    inputsRef.value[y - 1][complexity.value - 1].focus()
   }
 }
 
 function isMatched(y: number) {
   let count = 0
-  for (let i = 0; i < Complexity.value; i++) {
-    if (letters.value[y][i] == WORD.value[i].toUpperCase()) {
+  for (let i = 0; i < complexity.value; i++) {
+    if (letters.value[y][i] == word.value[i].toUpperCase()) {
       count += 1
-      matched.value[y][i] = true
+      matched.value[y][i] = true  
     }
   }
-  if (count === Complexity.value) {
-    Win()
-    console.log(WinGame.value)
+  if (count === complexity.value) {
+    winGame.value = true
   }
   count = 0
 }
@@ -153,78 +145,78 @@ const setInputRef = (el: any, y: number, x: number) => {
   inputsRef.value[y][x] = el
 }
 
-const SelectComlexity = async (value: string) => {
-  switch (value) {
-    case 'easy': {
-      Complexity.value = 4
-      Attempt.value = 10
-      break
-    }
-    case 'medium': {
-      Complexity.value = 6
-      Attempt.value = 8
-      break
-    }
-    case 'hard': {
-      Complexity.value = 8
-      Attempt.value = 6
-      break
-    }
-  }
-
-  await nextTick()
-  inputsRef.value = resetGrid()
-  letters.value = resetGrid()
-  matched.value = resetGrid()
-
-  await nextTick()
-  vFocus(inputsRef.value)
-}
-
-const Reset = async () => {
+const restart = async () => {
   WinGame.value = false
   LoseGame.value = false
-  for(let y=0; y < Attempt.value; y++){
-    for(let x=0; x < Complexity.value; x++){
-      inputsRef.value[y][x].classList.remove("matched")
+  for (let y = 0; y < attempt.value; y++) {
+    for (let x = 0; x < complexity.value; x++) {
+      inputsRef.value[y][x].classList.remove('matched')
       inputsRef.value[y][x].value = null
     }
   }
-  inputsRef.value = resetGrid()
-  letters.value = resetGrid()
-  matched.value = resetGrid()
-  WORD.value = generateWord(Complexity.value)
+  inputsRef.value = resetGrid(complexity.value, attempt.value)
+  letters.value = resetGrid(complexity.value, attempt.value)
+  matched.value = resetGrid(complexity.value, attempt.value)
+  word.value = generateWord(complexity.value)
   await nextTick()
   vFocus(inputsRef.value)
 }
 
-const Win = () => {
-  WinGame.value = true
+const plus = async () => {
+  if (complexity.value <= 8) {
+    complexity.value++
+    await nextTick()
+    inputsRef.value = resetGrid(complexity.value, attempt.value)
+    letters.value = resetGrid(complexity.value, attempt.value)
+    matched.value = resetGrid(complexity.value, attempt.value)
+    word.value = generateWord(complexity.value)
+  }
+  await nextTick()
+  vFocus(inputsRef.value)
 }
 
-const Over = () => {
-  LoseGame.value = true
+const minus = async () => {
+  if (complexity.value > 4) {
+    complexity.value--
+    await nextTick()
+    inputsRef.value = resetGrid(complexity.value, attempt.value)
+    letters.value = resetGrid(complexity.value, attempt.value)
+    matched.value = resetGrid(complexity.value, attempt.value)
+    WORD.value = generateWord(complexity.value)
+    await nextTick()
+    vFocus(inputsRef.value)
+  }
 }
 </script>
 
 <style scoped lang="scss">
+$color-text: white;
+$color-background: black;
+$color-border: gray;
+$width-input: 46px;
+
 @mixin font_ {
   font-family: Verdana, Geneva, Tahoma, sans-serif;
   font-weight: 400;
-  line-height: 46px;
+  line-height: 32px;
   font-size: 28px;
 }
 
 @mixin color_ {
-  background-color: black;
-  color: WHITE;
-  border: solid gray 2px;
+  background-color: $color-background;
+  color: $color-text;
+  border: solid $color-border 2px;
 }
 
 @mixin size_ {
   width: fit-content;
   height: fit-content;
 }
+
+@mixin border_ {
+  border: solid $color-border 2px;
+}
+
 .wrapper {
   width: 100%;
   height: 100vh;
@@ -234,17 +226,27 @@ const Over = () => {
   justify-content: center;
   gap: 20px;
   padding: 100px 0;
-  background-color: black;
+  background-color: $color-background;
+
+  .header,
+  .content,
+  .footer,
+  .wrapper--button {
+    display: flex;
+    gap: 10px;
+    padding: 10px;
+    @include border_();
+    @include size_();
+  }
+  .content {
+    flex-direction: column;
+  }
 }
 
-.header,
-.footer,
-.wrapper--button {
-  display: flex;
-  gap: 10px;
-  padding: 10px;
-  border: solid gray 2px;
-  @include size_();
+.logo {
+  color: $color-text;
+  border-bottom: 2px solid $color-border;
+  @include font_();
 }
 
 .attemp {
@@ -252,61 +254,34 @@ const Over = () => {
   gap: 10px;
   transition: all 0.4s;
 }
-.header {
-  transition: all 0.4s;
-}
-
-.letter {
-  width: 50px;
-  height: 50px;
-  text-align: center;
-  text-transform: uppercase;
-  @include font_();
-  @include color_();
-}
-
-.content {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 10px;
-  border: solid gray 2px;
-  @include size_();
-}
 
 .button {
-  @include font_();
-  @include color_();
+  width: $width-input;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   padding: 0 10px;
   transition: all 0.4s;
+  @include font_();
+  @include color_();
 }
 
-.button:hover,
-.letter:hover {
+.button:hover {
   cursor: pointer;
   scale: 1.05;
 }
 
-.letter-group {
-  display: flex;
-  gap: 10px;
-  padding: 10px;
-  border: solid gray 2px;
-}
-
 .input {
-  width: 50px;
-  height: 50px;
+  width: $width-input;
+  aspect-ratio: 1 / 1;
   text-align: center;
-  font-family: Verdana, Geneva, Tahoma, sans-serif;
-  font-weight: 400;
-  line-height: 32px;
-  font-size: 28px;
   text-transform: uppercase;
-  background-color: black;
-  color: rgb(230, 227, 224);
-  border: solid gray 2px;
+  background-color: $color-background;
+  color: $color-text;
   caret-color: transparent;
+  @include border_();
+  @include font_();
 }
 
 .input:focus {
@@ -317,6 +292,10 @@ const Over = () => {
 
 .matched {
   animation: fillGreen 1.6s forwards;
+}
+
+.image {
+  width: 36px;
 }
 
 @keyframes fillGreen {
