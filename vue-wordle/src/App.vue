@@ -7,7 +7,7 @@
     </div>
     <!-- забрати  -->
     <div class="header" v-if="WinGame === true || LoseGame === true">
-      <div class="letter" v-for="letter in WORD">{{ letter }}</div>
+      <div class="letter matched" v-for="letter in WORD">{{ letter }}</div>
     </div>
     <div class="content">
       <div
